@@ -3,6 +3,7 @@ package com.hospital.appointment_system.controllers;
 import com.hospital.appointment_system.models.Doctor;
 import com.hospital.appointment_system.services.DoctorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,4 +54,24 @@ public class DoctorController {
         doctorService.deleteDoctor(id);
         return ResponseEntity.ok("Doctor deleted successfully");
     }
+    @GetMapping("/paginated")
+    public ResponseEntity<Page<Doctor>> getAllDoctorsPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sortBy) {
+        return ResponseEntity.ok(
+                doctorService.getAllDoctorsPaginated(page, size, sortBy));
+    }
+
+    @GetMapping("/specialization/{spec}/paginated")
+    public ResponseEntity<Page<Doctor>> getBySpecializationPaginated(
+            @PathVariable String spec,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(
+                doctorService.getDoctorsBySpecializationPaginated(spec, page, size));
+    }
+
+
+
 }

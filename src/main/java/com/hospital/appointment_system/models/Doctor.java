@@ -7,7 +7,10 @@ import lombok.AllArgsConstructor;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "doctors")
+@Table(name = "doctors" ,indexes = {
+        @Index(name = "idx_doctor_specialization", columnList = "specialization"),
+        @Index(name = "idx_doctor_available", columnList = "available")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
