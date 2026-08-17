@@ -1,6 +1,7 @@
 package com.hospital.appointment_system.config;
 
 import com.hospital.appointment_system.security.JwtFilter;
+import com.hospital.appointment_system.security.RateLimitFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,9 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+    @Autowired
+    private RateLimitFilter rateLimitFilter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -31,6 +35,8 @@ public class SecurityConfig {
                         // everything else needs token
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(rateLimitFilter,
+                        UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter,
                         UsernamePasswordAuthenticationFilter.class);
 

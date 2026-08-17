@@ -32,6 +32,9 @@ public class AppointmentService {
     @Autowired
     private DoctorRepository doctorRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     // waitlist queue — doctor id maps to queue of patient ids
     private Queue<Long[]> waitlistQueue = new LinkedList<>();
 
@@ -73,7 +76,11 @@ public class AppointmentService {
         appointment.setTimeSlot(timeSlot);
         appointment.setStatus(AppointmentStatus.CONFIRMED);
 
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+        notificationService.sendAppointmentConfirmation(saved); // ASNYC
+        return saved;
+
+
     }
 
     public List<Appointment> getAppointmentsByPatient(Long patientId) {
@@ -96,14 +103,16 @@ public class AppointmentService {
                         "Appointment not found: " + id));
         appointment.setStatus(AppointmentStatus.CANCELLED);
 
+        Appointment cancelled = appointmentRepository.save(appointment);
+
         // check waitlist — if someone waiting, notify them
         if (!waitlistQueue.isEmpty()) {
             Long[] next = waitlistQueue.poll();
-            System.out.println("Notifying patient " + next[0]
-                    + " that slot is now available with doctor " + next[1]);
+            notificationService.sendWaitlistNotification(next[0], next[1]); // ← NEW
         }
 
-        return appointmentRepository.save(appointment);
+        notificationService.sendCancellationNotification(cancelled); // ← NEW
+        return cancelled;
     }
 
     public Appointment completeAppointment(Long id) {
