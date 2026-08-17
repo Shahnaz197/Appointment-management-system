@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments - MEDIBOOK</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- navbar -->
+<div class="navbar">
+    <h1>MEDIBOOK</h1>
+    <div>
+        <span style="color:#666; font-size:0.85rem" id="userEmail"></span>
+        <a href="dashboard.html">DASHBOARD</a>
+        <a href="#" onclick="logout()">LOGOUT</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <div class="alert alert-error" id="alert"></div>
+    <div class="alert alert-success" id="successAlert"></div>
+
+    <div class="card">
+        <h2>MY APPOINTMENTS</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Doctor</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="appointmentsTable">
+            <tr>
+                <td colspan="6" style="text-align:center; color:#666">
+                    Loading...
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'index.html';
+
+    document.getElementById('userEmail').textContent =
+        localStorage.getItem('email');
+
+    const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    };
+
+    function showError(message) {
+        const alert = document.getElementById('alert');
+        alert.textContent = message;
+        alert.style.display = 'block';
+        setTimeout(() => alert.style.display = 'none', 3000);
+    }
+
+    function showSuccess(message) {
+        const alert = document.getElementById('successAlert');
+        alert.textContent = message;
+        alert.style.display = 'block';
+        setTimeout(() => alert.style.display = 'none', 3000);
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    function getBadgeClass(status) {
+        switch(status) {
+            case 'CONFIRMED': return 'badge badge-confirmed';
+            case 'CANCELLED': return 'badge badge-cancelled';
+            case 'PENDING': return 'badge badge-pending';
+            case 'COMPLETED': return 'badge badge-completed';
+            default: return 'badge';
+        }
+    }
+
+    async function loadAppointments() {
+        try {
+            const response = await fetch('/api/appointments', { headers });
+            const appointments = await response.json();
+
+            const tbody = document.getElementById('appointmentsTable');
+
+            if (appointments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; color:#666">
+                            No appointments found
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = appointments.map(apt => `
+                <tr>
+                    <td>#${apt.id}</td>
+                    <td>${apt.doctor.name}</td>
+                    <td>${apt.appointmentDate}</td>
+                    <td>${apt.timeSlot}</td>
+                    <td>
+                        <span class="${getBadgeClass(apt.status)}">
+                            ${apt.status}
+                        </span>
+                    </td>
+                    <td>
+                        ${apt.status === 'CONFIRMED' ? `
+                            <button class="btn btn-danger"
+                                onclick="cancelAppointment(${apt.id})">
+                                CANCEL
+                            </button>
+                            <button class="btn btn-success"
+                                onclick="completeAppointment(${apt.id})"
+                                style="margin-left:5px">
+                                COMPLETE
+                            </button>
+                        ` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+
+        } catch (error) {
+            showError('Failed to load appointments');
+        }
+    }
+
+    async function cancelAppointment(id) {
+        try {
+            const response = await fetch(
+                `/api/appointments/${id}/cancel`,
+                { method: 'PUT', headers }
+            );
+
+            if (response.ok) {
+                showSuccess('Appointment cancelled!');
+                loadAppointments(); // reload table
+            } else {
+                showError('Failed to cancel appointment');
+            }
+        } catch (error) {
+            showError('Something went wrong!');
+        }
+    }
+
+    async function completeAppointment(id) {
+        try {
+            const response = await fetch(
+                `/api/appointments/${id}/complete`,
+                { method: 'PUT', headers }
+            );
+
+            if (response.ok) {
+                showSuccess('Appointment completed!');
+                loadAppointments(); // reload table
+            } else {
+                showError('Failed to complete appointment');
+            }
+        } catch (error) {
+            showError('Something went wrong!');
+        }
+    }
+
+    loadAppointments();
+</script>
+
+</body>
+</html>

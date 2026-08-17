@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - MEDIBOOK</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- navbar -->
+<div class="navbar">
+  <h1>MEDIBOOK</h1>
+  <div>
+    <span style="color:#666; font-size:0.85rem" id="userEmail"></span>
+    <a href="appointments.html">MY APPOINTMENTS</a>
+    <a href="#" onclick="logout()">LOGOUT</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- alert -->
+  <div class="alert alert-error" id="alert"></div>
+  <div class="alert alert-success" id="successAlert"></div>
+
+  <!-- book appointment -->
+  <div class="card">
+    <h2>BOOK APPOINTMENT</h2>
+    <div class="form-group">
+      <label>Doctor</label>
+      <select id="doctorSelect">
+        <option value="">Select a doctor...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Patient ID</label>
+      <input type="number" id="patientId" placeholder="Enter patient ID">
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="appointmentDate">
+    </div>
+    <div class="form-group">
+      <label>Time Slot</label>
+      <select id="timeSlot">
+        <option value="09:00:00">09:00 AM</option>
+        <option value="10:00:00">10:00 AM</option>
+        <option value="11:00:00">11:00 AM</option>
+        <option value="12:00:00">12:00 PM</option>
+        <option value="13:00:00">01:00 PM</option>
+        <option value="14:00:00">02:00 PM</option>
+        <option value="15:00:00">03:00 PM</option>
+        <option value="16:00:00">04:00 PM</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="bookAppointment()">
+      BOOK APPOINTMENT
+    </button>
+  </div>
+
+  <!-- doctors list -->
+  <div class="card">
+    <h2>AVAILABLE DOCTORS</h2>
+    <div class="grid" id="doctorsGrid">
+      <!-- doctors loaded here -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // check auth
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'index.html';
+
+  document.getElementById('userEmail').textContent =
+      localStorage.getItem('email');
+
+  const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+  };
+
+  function showError(message) {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.style.display = 'block';
+      setTimeout(() => alert.style.display = 'none', 3000);
+  }
+
+  function showSuccess(message) {
+      const alert = document.getElementById('successAlert');
+      alert.textContent = message;
+      alert.style.display = 'block';
+      setTimeout(() => alert.style.display = 'none', 3000);
+  }
+
+  function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+  }
+
+  // load doctors
+  async function loadDoctors() {
+      try {
+          const response = await fetch('/api/doctors', { headers });
+          const doctors = await response.json();
+
+          // populate select
+          const select = document.getElementById('doctorSelect');
+          doctors.forEach(doctor => {
+              const option = document.createElement('option');
+              option.value = doctor.id;
+              option.textContent = `Dr. ${doctor.name} - ${doctor.specialization}`;
+              select.appendChild(option);
+          });
+
+          // populate grid
+          const grid = document.getElementById('doctorsGrid');
+          grid.innerHTML = doctors.map(doctor => `
+              <div class="doctor-card">
+                  <h3>${doctor.name}</h3>
+                  <p class="specialization">${doctor.specialization}</p>
+                  <p>📞 ${doctor.phone || 'N/A'}</p>
+                  <p>🕐 ${doctor.availableFrom} - ${doctor.availableTo}</p>
+                  <p style="margin-top:10px">
+                      <span class="${doctor.available ?
+                          'badge badge-confirmed' : 'badge badge-cancelled'}">
+                          ${doctor.available ? 'AVAILABLE' : 'UNAVAILABLE'}
+                      </span>
+                  </p>
+              </div>
+          `).join('');
+
+      } catch (error) {
+          showError('Failed to load doctors');
+      }
+  }
+
+  // book appointment
+  async function bookAppointment() {
+      const patientId = document.getElementById('patientId').value;
+      const doctorId = document.getElementById('doctorSelect').value;
+      const date = document.getElementById('appointmentDate').value;
+      const timeSlot = document.getElementById('timeSlot').value;
+
+      if (!patientId || !doctorId || !date || !timeSlot) {
+          showError('Please fill in all fields');
+          return;
+      }
+
+      try {
+          const response = await fetch(
+              `/api/appointments/book?patientId=${patientId}&doctorId=${doctorId}&date=${date}&timeSlot=${timeSlot}`,
+              { method: 'POST', headers }
+          );
+
+          const data = await response.json();
+
+          if (response.ok) {
+              showSuccess('Appointment booked successfully!');
+          } else {
+              showError(data.message || 'Booking failed');
+          }
+      } catch (error) {
+          showError('Something went wrong!');
+      }
+  }
+
+  // load on start
+  loadDoctors();
+</script>
+
+</body>
+</html>

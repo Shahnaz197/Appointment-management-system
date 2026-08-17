@@ -32,6 +32,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // public endpoints — no token needed
                         .requestMatchers("/api/auth/**").permitAll()
+                        //frontend
+                        .requestMatchers("/", "/*.html", "/*.css", "/*.js").permitAll()
+                        .requestMatchers("/favicon.ico").permitAll()
                         // everything else needs token
                         .anyRequest().authenticated()
                 )
